@@ -23,7 +23,8 @@ Filters sit in the middle of the flow—like checkpoints—where you decide what
 Here’s a quick summary of what Filters do:
 
 1. **Modify User Inputs (Inlet Function)**: Tweak the input data before it reaches the AI model. This is where you enhance clarity, add context, sanitize text, or reformat messages to match specific requirements.
-2. **Modify Model Outputs (Outlet Function)**: Adjust the AI's response **after it’s processed**, before showing it to the user. This can help refine, log, or adapt the data for a cleaner user experience.
+2. **Intercept Model Outputs (Stream Function)**: Capture and adjust the AI’s responses **as they’re generated** by the model. This is useful for real-time modifications, like filtering out sensitive information or formatting the output for better readability.
+3. **Modify Model Outputs (Outlet Function)**: Adjust the AI's response **after it’s processed**, before showing it to the user. This can help refine, log, or adapt the data for a cleaner user experience.
 
 > **Key Concept:** Filters are not standalone models but tools that enhance or transform the data traveling *to* and *from* models.  
 
@@ -55,10 +56,63 @@ class Filter:
         print(f"inlet called: {body}")
         return body  
 
+    def stream(self, event: dict) -> dict:
+        # This is where you modify streamed chunks of model output.
+        print(f"stream event: {event}")
+        return event
+
     def outlet(self, body: dict) -> None:
         # This is where you manipulate model outputs.
         print(f"outlet called: {body}")
 ```
+
+---
+
+### 🆕 🧲 Toggle Filter Example: Adding Interactivity and Icons (New in Open WebUI 0.6.10)
+
+Filters can do more than simply modify text—they can expose UI toggles and display custom icons. For instance, you might want a filter that can be turned on/off with a user interface button, and displays a special icon in Open WebUI’s message input UI.
+
+Here’s how you could create such a toggle filter:
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class Filter:
+    class Valves(BaseModel):
+        pass
+
+    def __init__(self):
+        self.valves = self.Valves()
+        self.toggle = True # IMPORTANT: This creates a switch UI in Open WebUI
+        # TIP: Use SVG Data URI!
+        self.icon = """data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBjbGFzcz0ic2l6ZS02Ij4KICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0xMiAxOHYtNS4yNW0wIDBhNi4wMSA2LjAxIDAgMCAwIDEuNS0uMTg5bS0xLjUuMTg5YTYuMDEgNi4wMSAwIDAgMS0xLjUtLjE4OW0zLjc1IDcuNDc4YTEyLjA2IDEyLjA2IDAgMCAxLTQuNSAwbTMuNzUgMi4zODNhMTQuNDA2IDE0LjQwNiAwIDAgMS0zIDBNMTQuMjUgMTh2LS4xOTJjMC0uOTgzLjY1OC0xLjgyMyAxLjUwOC0yLjMxNmE3LjUgNy41IDAgMSAwLTcuNTE3IDBjLjg1LjQ5MyAxLjUwOSAxLjMzMyAxLjUwOSAyLjMxNlYxOCIgLz4KPC9zdmc+Cg=="""
+        pass
+
+    async def inlet(
+        self, body: dict, __event_emitter__, __user__: Optional[dict] = None
+    ) -> dict:
+        await __event_emitter__(
+            {
+                "type": "status",
+                "data": {
+                    "description": "Toggled!",
+                    "done": True,
+                    "hidden": False,
+                },
+            }
+        )
+        return body
+```
+
+#### 🖼️ What’s happening?
+- **toggle = True** creates a switch UI in Open WebUI—users can manually enable or disable the filter in real time.
+- **icon** (with a Data URI) will show up as a little image next to the filter’s name. You can use any SVG as long as it’s Data URI encoded!
+- **The `inlet` function** uses the `__event_emitter__` special argument to broadcast feedback/status to the UI, such as a little toast/notification that reads "Toggled!"
+
+![Toggle Filter](/images/features/plugin/functions/toggle-filter.png)
+
+You can use these mechanisms to make your filters dynamic, interactive, and visually unique within Open WebUI’s plugin ecosystem.
 
 ---
 
@@ -149,7 +203,52 @@ Note: The user feels the same, but the model processes a cleaner and easier-to-u
 
 ---
 
-#### 3️⃣ **`outlet` Function (Output Post-Processing)**
+#### 🆕 3️⃣ **`stream` Hook (New in Open WebUI 0.5.17)**
+
+##### 🔄 What is the `stream` Hook?
+The **`stream` function** is a new feature introduced in Open WebUI **0.5.17** that allows you to **intercept and modify streamed model responses** in real time.
+
+Unlike `outlet`, which processes an entire completed response, `stream` operates on **individual chunks** as they are received from the model.
+
+##### 🛠️ When to Use the Stream Hook?
+- Modify **streaming responses** before they are displayed to users.
+- Implement **real-time censorship or cleanup**.
+- **Monitor streamed data** for logging/debugging.
+
+##### 📜 Example: Logging Streaming Chunks
+
+Here’s how you can inspect and modify streamed LLM responses:
+```python
+def stream(self, event: dict) -> dict:
+    print(event)  # Print each incoming chunk for inspection
+    return event
+```
+
+> **Example Streamed Events:**
+```jsonl
+{"id": "chatcmpl-B4l99MMaP3QLGU5uV7BaBM0eDS0jb","choices": [{"delta": {"content": "Hi"}}]}
+{"id": "chatcmpl-B4l99MMaP3QLGU5uV7BaBM0eDS0jb","choices": [{"delta": {"content": "!"}}]}
+{"id": "chatcmpl-B4l99MMaP3QLGU5uV7BaBM0eDS0jb","choices": [{"delta": {"content": " 😊"}}]}
+```
+📖 **What Happens?**
+- Each line represents a **small fragment** of the model's streamed response.
+- The **`delta.content` field** contains the progressively generated text.
+
+##### 🔄 Example: Filtering Out Emojis from Streamed Data
+```python
+def stream(self, event: dict) -> dict:
+    for choice in event.get("choices", []):
+        delta = choice.get("delta", {})
+        if "content" in delta:
+            delta["content"] = delta["content"].replace("😊", "")  # Strip emojis
+    return event
+```
+📖 **Before:** `"Hi 😊"`  
+📖 **After:** `"Hi"`
+
+---
+
+#### 4️⃣ **`outlet` Function (Output Post-Processing)**
 
 The `outlet` function is like a **proofreader**: tidy up the AI's response (or make final changes) *after it’s processed by the LLM.*  
 
@@ -229,9 +328,10 @@ You can, but **it’s not the best practice.**:
 
 By now, you’ve learned:
 1. **Inlet** manipulates **user inputs** (pre-processing).
-2. **Outlet** tweaks **AI outputs** (post-processing).
-3. Filters are best for lightweight, real-time alterations to the data flow.
-4. With **Valves**, you empower users to configure Filters dynamically for tailored behavior.
+2. **Stream** intercepts and modifies **streamed model outputs** (real-time).
+3. **Outlet** tweaks **AI outputs** (post-processing).
+4. Filters are best for lightweight, real-time alterations to the data flow.
+5. With **Valves**, you empower users to configure Filters dynamically for tailored behavior.
 
 ---
 

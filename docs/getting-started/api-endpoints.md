@@ -25,7 +25,8 @@ To ensure secure access to the API, authentication is required 🛡️. You can 
 
 - **Endpoint**: `POST /api/chat/completions`
 - **Description**: Serves as an OpenAI API compatible chat completion endpoint for models on Open WebUI including Ollama models, OpenAI models, and Open WebUI Function models.
-- **Example**:
+
+- **Curl Example**:
 
   ```bash
   curl -X POST http://localhost:3000/api/chat/completions \
@@ -41,6 +42,62 @@ To ensure secure access to the API, authentication is required 🛡️. You can 
         ]
       }'
   ```
+  
+- **Python Example**:
+  ```python
+  import requests
+  
+  def chat_with_model(token):
+      url = 'http://localhost:3000/api/chat/completions'
+      headers = {
+          'Authorization': f'Bearer {token}',
+          'Content-Type': 'application/json'
+      }
+      data = {
+        "model": "granite3.1-dense:8b",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Why is the sky blue?"
+          }
+        ]
+      }
+      response = requests.post(url, headers=headers, json=data)
+      return response.json()
+  ```
+
+### 🦙 Ollama API Proxy Support
+
+If you want to interact directly with Ollama models—including for embedding generation or raw prompt streaming—Open WebUI offers a transparent passthrough to the native Ollama API via a proxy route.
+
+- **Base URL**: `/ollama/<api>`
+- **Reference**: [Ollama API Documentation](https://github.com/ollama/ollama/blob/main/docs/api.md)
+
+#### 🔁 Generate Completion (Streaming)
+
+```bash
+curl http://localhost:3000/ollama/api/generate -d '{
+  "model": "llama3.2",
+  "prompt": "Why is the sky blue?"
+}'
+```
+
+#### 📦 List Available Models
+
+```bash
+curl http://localhost:3000/ollama/api/tags
+```
+
+#### 🧠 Generate Embeddings
+
+```bash
+curl -X POST http://localhost:3000/ollama/api/embed -d '{
+  "model": "llama3.2",
+  "input": ["Open WebUI is great!", "Let's generate embeddings."]
+}'
+```
+
+This is ideal for building search indexes, retrieval systems, or custom pipelines using Ollama models behind the Open WebUI.
 
 ### 🔤 Embeddings
 - **Endpoint**: `POST /api/embeddings`

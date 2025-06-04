@@ -52,7 +52,7 @@ This tutorial is a community contribution and is not supported by the Open WebUI
 
 ### You can choose between GPU or CPU versions
 
-### GPU Version (Requires NVIDIA GPU with CUDA 12.1)
+### GPU Version (Requires NVIDIA GPU with CUDA 12.8)
 
 Using docker run:
 
@@ -111,7 +111,7 @@ To use Kokoro-FastAPI with Open WebUI, follow these steps:
 - Open the Admin Panel and go to `Settings` -> `Audio`
 - Set your TTS Settings to match the following:
 - - Text-to-Speech Engine: OpenAI
-  - API Base URL: `http://localhost:8880/v1`
+  - API Base URL: `http://localhost:8880/v1` # you may need to use `host.docker.internal` instead of `localhost`
   - API Key: `not-needed`
   - TTS Model: `kokoro`
   - TTS Voice: `af_bella` # also accepts mapping of existing OAI voices for compatibility

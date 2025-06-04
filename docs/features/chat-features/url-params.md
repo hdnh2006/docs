@@ -37,7 +37,7 @@ The following table lists the available URL parameters, their function, and exam
 
 ### 3. **Web Search**
 
-- **Description**: Enabling `web-search` allows the chat session to access [web search](/tutorials/web-search/_category_.json) functionality.
+- **Description**: Enabling `web-search` allows the chat session to access [web search](/category/-web-search) functionality.
 - **How to Set**: Set this parameter to `true` to enable web search.
 - **Example**: `/?web-search=true`
 - **Behavior**: If enabled, the chat can retrieve web search results as part of its responses.
@@ -82,7 +82,7 @@ Suppose a user wants to initiate a quick chat session without saving the history
 These URL parameters can be combined to create highly customized chat sessions. For example:
 
 ```bash
-/chat?models=model1,model2&youtube=VIDEO_ID&web-search=true&tools=tool1,tool2&call=true&q=Hello%20there&temporary-chat=true
+/?models=model1,model2&youtube=VIDEO_ID&web-search=true&tools=tool1,tool2&call=true&q=Hello%20there&temporary-chat=true
 ```
 
 This URL will:
